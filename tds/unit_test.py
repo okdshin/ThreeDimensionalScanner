@@ -5,7 +5,7 @@ import sys
 def main():
     print("unit_test.py:compiling unit test...")
     target_name = sys.argv[1].split('.')[0]
-    is_compile_success = os.system("g++ -D UNIT_TEST -std=gnu++0x -g -Wall -O3  -lboost_serialization -I/usr/include/opencv2 -lopencv_core -lopencv_highgui -lopencv_imgproc {target}.cpp -o unit_test.out".format(target = target_name))
+    is_compile_success = os.system("g++ -D UNIT_TEST -std=gnu++0x -g -Wall -lboost_serialization -I/usr/include/opencv2 -lopencv_core -lopencv_highgui -lopencv_imgproc {target}.cpp -o unit_test.out".format(target = target_name))
     if(is_compile_success!=0):
         return 1
     else:
