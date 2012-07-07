@@ -40,6 +40,18 @@ public:
         this->image_list.Add(image);
     }
 
+	auto begin()const 
+	-> typename common::List<Image<ColorElementType, ColorDimensionNum>>::const_iterator
+	{
+		return this->image_list.begin();		
+	};
+	
+	auto end()const 
+	-> typename common::List<Image<ColorElementType, ColorDimensionNum>>::const_iterator
+	{
+		return this->image_list.end();		
+	};
+
 private:
     friend class boost::serialization::access;
 
@@ -74,6 +86,20 @@ Movie<ColorElementType, ColorDimensionNum> LoadMovie(std::istream& is)
     auto movie = Movie<ColorElementType, ColorDimensionNum>();
     ia >> movie;
     return movie;
+}
+
+template<class ColorElementType, unsigned int ColorDimensionNum>
+std::ostream& operator <<(
+	std::ostream& os, 
+	const Movie<ColorElementType, ColorDimensionNum>& movie
+)
+{
+	for(const auto& image : movie)
+	{
+		os << image << std::endl;	
+	}
+	
+	return os;	
 }
 
 }

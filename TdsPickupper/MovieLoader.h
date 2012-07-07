@@ -1,8 +1,8 @@
 #pragma once
 #include <iostream>
 #include <opencv2/opencv.hpp>
-#include <QtGui>
-#include "Routine.h"
+//#include <QtGui>
+//#include "Routine.h"
 #include <memory>
 
 namespace fmv

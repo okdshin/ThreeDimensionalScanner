@@ -1,6 +1,7 @@
 #pragma once
 //Routine:20120625
 #include <iostream>
+#include <cmath>
 #include "../common/Array3dRoutine.h"
 #include "../tdm/ThreeDimensionModel.h"
 #include "../mg/MiddleGraphics.h"
@@ -8,7 +9,8 @@
 namespace tds
 {
 auto PrintImage(
-	const mg::Color4bImage& image, 
+	const mg::Color4bImage& image,
+	const double theta_radian, 
 	const tdscore::ExistenceFlagVoxelCuboid& efvc, 
 	const mg::Color4b& back_color/*, rotate_radian*/
 )
@@ -16,17 +18,62 @@ auto PrintImage(
 {
 	auto converted = common::ConvertElement<tdscore::ExistenceFlagVoxel, tdscore::ExistenceFlagVoxel>(
 		efvc,
-		[&image, &back_color](const tdscore::ExistenceFlagVoxel& efb){
+		[&image, &theta_radian, &back_color](const tdscore::ExistenceFlagVoxel& efb){
 			const auto coord = efb.GetCoord();
 			const auto image_size = image.GetSize();
+			/*
 			const auto index_coord = common::CreateVector3i(
 				static_cast<int>(coord(0)),
 				static_cast<int>(coord(1)),
 				static_cast<int>(coord(2))
 			);
+			*/
+			//std::cout << static_cast<int>(0.9*(cos(theta_radian)*coord(1)-sin(theta_radian)*coord(0))+image_size.GetWidth()/2) << std::endl;
 			const auto color = image(
-				index_coord(0)+image_size.GetWidth()/2, 
-				index_coord(1)+image_size.GetHeight()/2
+				static_cast<int>(0.5*(cos(theta_radian)*coord(1)-sin(theta_radian)*coord(0))+image_size.GetWidth()/2), 
+				static_cast<int>(0.5*coord(2)+image_size.GetHeight()/2)
+			);
+
+			if(efb.GetValue() == tdscore::EXIST)
+			{
+				if(color == back_color)
+				{
+					return tdscore::ExistenceFlagVoxel(efb.GetCoord(), tdscore::NOT_EXIST);
+				}
+				else
+				{
+					return efb;
+				}
+			}
+			else
+			{
+				return efb;	
+			}
+
+		}
+	);
+	return converted;
+
+}
+
+auto ParallelPrintImage(
+	const mg::Color4bImage& image,
+	const double theta_radian, 
+	const tdscore::ExistenceFlagVoxelCuboid& efvc, 
+	const mg::Color4b& back_color,
+	unsigned int thread_num
+)
+-> tdscore::ExistenceFlagVoxelCuboid
+{
+	auto converted = common::ParallelConvertElement<tdscore::ExistenceFlagVoxel, tdscore::ExistenceFlagVoxel>(
+		efvc,
+		thread_num,
+		[&image, &theta_radian, &back_color](const tdscore::ExistenceFlagVoxel& efb){
+			const auto coord = efb.GetCoord();
+			const auto image_size = image.GetSize();
+			const auto color = image(
+				static_cast<int>(0.5*(cos(theta_radian)*coord(1)-sin(theta_radian)*coord(0))+image_size.GetWidth()/2), 
+				static_cast<int>(0.5*coord(2)+image_size.GetHeight()/2)
 			);
 
 			if(efb.GetValue() == tdscore::EXIST)
