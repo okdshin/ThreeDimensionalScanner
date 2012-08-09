@@ -47,6 +47,51 @@ const auto HEX_DIRECTION_LIST = GetHexDirectionList();
 const auto OCT_DIRECTION_LIST = GetOctDirectionList();
 
 auto Dig(
+	const ExistenceFlagVoxelCuboid& src_efvc,
+	const double src_edge_length,
+	const common::List<common::Vector3i>& direction_list = HEX_DIRECTION_LIST
+) 
+-> ExistenceFlagVoxelCuboid
+{
+	auto dst_efvc = tdscore::CreateExistenceFlagVoxelCuboid(src_efvc.GetSize(), src_edge_length, tdscore::NOT_EXIST);
+	common::ForEachIndex(
+		src_efvc.GetSize(), 
+		[&src_efvc, &direction_list, &dst_efvc](
+			const unsigned int x, 
+			const unsigned int y, 
+			const unsigned int z
+		)
+		{
+			if(src_efvc(x, y, z).GetValue() == EXIST)
+			{
+				for(const auto dir : direction_list)
+				{
+					const auto size = src_efvc.GetSize();
+					if(
+						x+dir(0) <  size.GetWidth() && 
+						y+dir(1) <  size.GetHeight() && 
+						z+dir(2) <  size.GetDepth()
+					){
+						if(src_efvc(x+dir(0), y+dir(1), z+dir(2)).GetValue() == NOT_EXIST)
+						{
+							dst_efvc(x, y, z) = src_efvc(x, y, z);
+							return;
+						}
+					}
+				}
+
+				return; 
+			}
+			else
+			{
+				return;	
+			}
+		}
+	);
+	return dst_efvc;
+}
+
+auto DigToList(
 	const ExistenceFlagVoxelCuboid& efvc,
 	const common::List<common::Vector3i>& direction_list = HEX_DIRECTION_LIST
 ) 

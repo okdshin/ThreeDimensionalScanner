@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'mainwindow.h'
 **
-** Created: Tue Jul 3 12:24:15 2012
+** Created: Tue Jul 17 00:46:48 2012
 **      by: The Qt Meta Object Compiler version 63 (Qt 4.8.2)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,26 +23,46 @@ static const uint qt_meta_data_MainWindow[] = {
        6,       // revision
        0,       // classname
        0,    0, // classinfo
-       0,    0, // methods
+       6,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
        0,       // flags
        0,       // signalCount
 
+ // slots: signature, parameters, type, tag, flags
+      12,   11,   11,   11, 0x0a,
+      41,   28,   11,   11, 0x0a,
+      58,   11,   11,   11, 0x0a,
+      74,   11,   11,   11, 0x0a,
+      90,   11,   11,   11, 0x0a,
+     106,   11,   11,   11, 0x0a,
+
        0        // eod
 };
 
 static const char qt_meta_stringdata_MainWindow[] = {
-    "MainWindow\0"
+    "MainWindow\0\0OpenMovieFile()\0frame_number\0"
+    "SelectFrame(int)\0SetThreshold1()\0"
+    "SetThreshold2()\0SetThreshold3()\0"
+    "SaveMovieFile()\0"
 };
 
 void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
 {
-    Q_UNUSED(_o);
-    Q_UNUSED(_id);
-    Q_UNUSED(_c);
-    Q_UNUSED(_a);
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        Q_ASSERT(staticMetaObject.cast(_o));
+        MainWindow *_t = static_cast<MainWindow *>(_o);
+        switch (_id) {
+        case 0: _t->OpenMovieFile(); break;
+        case 1: _t->SelectFrame((*reinterpret_cast< int(*)>(_a[1]))); break;
+        case 2: _t->SetThreshold1(); break;
+        case 3: _t->SetThreshold2(); break;
+        case 4: _t->SetThreshold3(); break;
+        case 5: _t->SaveMovieFile(); break;
+        default: ;
+        }
+    }
 }
 
 const QMetaObjectExtraData MainWindow::staticMetaObjectExtraData = {
@@ -76,6 +96,11 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     _id = QMainWindow::qt_metacall(_c, _id, _a);
     if (_id < 0)
         return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        if (_id < 6)
+            qt_static_metacall(this, _c, _id, _a);
+        _id -= 6;
+    }
     return _id;
 }
 QT_END_MOC_NAMESPACE

@@ -41,6 +41,11 @@ public:
 		return this->image_array2d(x, y);
 	}
 
+	Color<ColorElementType, ColorDimensionNum>& operator()(unsigned int x, unsigned int y)
+	{
+		return this->image_array2d(x, y);
+	}
+	
 	common::Size2ui GetSize()const{ return this->image_array2d.GetSize(); }
 private:
     friend class boost::serialization::access;

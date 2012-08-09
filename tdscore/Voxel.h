@@ -28,5 +28,17 @@ std::ostream& operator<<(std::ostream& os, const Voxel<ValueType>& voxel)
 }
 
 
+template<class ValueType>
+auto CreateVoxel(
+	const unsigned int x, 
+	const unsigned int y, 
+	const unsigned int z, 
+	const ValueType& value
+)
+-> Voxel<ValueType>
+{
+	return Voxel<ValueType>(common::CreateVector3d(x, y, z), value);
+}
+
 }
 

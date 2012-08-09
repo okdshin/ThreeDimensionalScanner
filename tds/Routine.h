@@ -1,54 +1,48 @@
 #pragma once
 //Routine:20120625
 #include <iostream>
+#include <tuple>
+#include <algorithm>
+#include <vector>
 #include <cmath>
 #include "../common/Array3dRoutine.h"
 #include "../tdm/ThreeDimensionModel.h"
 #include "../mg/MiddleGraphics.h"
 #include "../tdscore/TdsCore.h"
+#include "../common/Vector.h"
 namespace tds
 {
 auto PrintImage(
 	const mg::Color4bImage& image,
 	const double theta_radian, 
 	const tdscore::ExistenceFlagVoxelCuboid& efvc, 
-	const mg::Color4b& back_color/*, rotate_radian*/
+	const mg::Color4b& back_color,
+	const double scale_ratio = 1.0
 )
 -> tdscore::ExistenceFlagVoxelCuboid
 {
 	auto converted = common::ConvertElement<tdscore::ExistenceFlagVoxel, tdscore::ExistenceFlagVoxel>(
 		efvc,
-		[&image, &theta_radian, &back_color](const tdscore::ExistenceFlagVoxel& efb){
-			const auto coord = efb.GetCoord();
-			const auto image_size = image.GetSize();
-			/*
-			const auto index_coord = common::CreateVector3i(
-				static_cast<int>(coord(0)),
-				static_cast<int>(coord(1)),
-				static_cast<int>(coord(2))
-			);
-			*/
-			//std::cout << static_cast<int>(0.9*(cos(theta_radian)*coord(1)-sin(theta_radian)*coord(0))+image_size.GetWidth()/2) << std::endl;
-			const auto color = image(
-				static_cast<int>(0.5*(cos(theta_radian)*coord(1)-sin(theta_radian)*coord(0))+image_size.GetWidth()/2), 
-				static_cast<int>(0.5*coord(2)+image_size.GetHeight()/2)
-			);
+		[&image, &theta_radian, &back_color, &scale_ratio](const tdscore::ExistenceFlagVoxel& efv)
+		{
+			const auto vx = efv.GetCoord()(0);
+			const auto vy = efv.GetCoord()(1);
+			const auto vz = efv.GetCoord()(2);
 
-			if(efb.GetValue() == tdscore::EXIST)
+			const auto image_width = image.GetSize().GetWidth();
+			const auto image_height = image.GetSize().GetHeight();
+			const int px = (cos(theta_radian)*vy - sin(theta_radian)*vx) +image_width/2.0;
+			const int py = vz +image_height/2.0;
+			const auto color = image(static_cast<unsigned int>(scale_ratio*px), static_cast<unsigned int>(scale_ratio*py));
+
+			if(efv.GetValue() == tdscore::EXIST)
 			{
 				if(color == back_color)
 				{
-					return tdscore::ExistenceFlagVoxel(efb.GetCoord(), tdscore::NOT_EXIST);
-				}
-				else
-				{
-					return efb;
+					return tdscore::ExistenceFlagVoxel(efv.GetCoord(), tdscore::NOT_EXIST);
 				}
 			}
-			else
-			{
-				return efb;	
-			}
+			return efv;	
 
 		}
 	);
@@ -82,29 +76,133 @@ auto ParallelPrintImage(
 				{
 					return tdscore::ExistenceFlagVoxel(efb.GetCoord(), tdscore::NOT_EXIST);
 				}
-				else
-				{
-					return efb;
-				}
 			}
-			else
-			{
-				return efb;	
-			}
-
+			return efb;	
 		}
 	);
 	return converted;
 
 }
 
-/*
-auto PrintMovie(const mg::COlor4bMovie& movie)
+auto GetDegreeOfSimilarity(
+	const mg::Color4bImage& image1, 
+	const mg::Color4bImage& image2
+)
+->double
+{
+	assert(image1.GetSize() == image2.GetSize());
+
+	double degree_sum = 0;
+	const auto size = image1.GetSize();
+	//std::cout << size << std::endl;
+	common::ForEachIndex(
+		common::Size2ui(size.GetWidth(), size.GetHeight()),
+		[&image1, &image2, &degree_sum]
+		(
+			const unsigned int x, 
+			const unsigned int y
+		){
+			const auto color1 = image1(x, y);
+			const auto color2 = image2(x, y);
+			const auto vec1 = common::ConvertElementType<mg::Byte, double, 4>(color1.GetColorVector());
+			const auto vec2 = common::ConvertElementType<mg::Byte, double, 4>(color2.GetColorVector());
+
+			const auto distance = common::GetSquareLength(vec1-vec2);
+			//if(distance != 0)std::cout << "aaaa" << std::endl;
+			/*
+			if(vec1 != vec2)
+			{
+				std::cerr << vec1 << vec2 << vec1-vec2 << distance << std::endl;
+			}
+			*/
+			degree_sum = degree_sum + distance; 
+
+		}
+	);
+	return degree_sum;
+}
+
+auto AutoCreateMaskMovie(
+	const mg::Color4bMovie& src_movie, 
+	unsigned int offset_frame, 
+	double range_max_radian, 
+	unsigned int dst_frame_num
+)
+->mg::Color4bMovie
+{
+	const auto base_frame = src_movie.GetFrame(offset_frame);
+	std::vector<std::tuple<double, unsigned int>> index_image_vector;
+	for(unsigned int i = offset_frame+1; i < src_movie.GetLength(); i++)
+	{
+		const auto degree = GetDegreeOfSimilarity(base_frame, src_movie.GetFrame(i));
+		index_image_vector.push_back(std::make_tuple(degree, i));
+	}
+	
+	std::sort(
+		index_image_vector.begin(), 
+		index_image_vector.end(), 
+		[](
+			const std::tuple<double, unsigned int>& left, 
+			const std::tuple<double, unsigned int>& right
+		)->bool
+		{
+			return std::get<0>(left) < std::get<0>(right);	
+		}
+	);
+	
+	for(const auto& e : index_image_vector)
+	{
+		std::cout << std::get<0>(e) << ":" << std::get<1>(e) << std::endl;
+	}
+	
+
+	return mg::Color4bMovie();
+}
+
+auto CreateMaskMovie(
+	const mg::Color4bMovie& src_movie, 
+	unsigned int offset_frame_min, 
+	unsigned int offset_frame_max,
+	unsigned int dst_frame_num
+)
+->mg::Color4bMovie
+{
+	auto dst_movie = mg::Color4bMovie();
+	const auto interval = (offset_frame_max-offset_frame_min)/dst_frame_num;
+	for(unsigned int frame_index = 0; frame_index < dst_frame_num; frame_index++)
+	{
+		const auto frame = src_movie.GetFrame(offset_frame_min + frame_index*interval);
+		dst_movie.AddFrame(frame);
+	}
+	return dst_movie;
+
+}
+auto PrintMaskMovie(
+	const mg::Color4bMovie& movie, 
+	const common::Size3ui& efvc_size, 
+	double voxel_edge_length, 
+	const mg::Color4b& back_color, 
+	double range_max_radian
+)
 -> tdscore::ExistenceFlagVoxelCuboid
 {
-	
+	auto printed_efvc = tdscore::CreateExistenceFlagVoxelCuboid(
+		efvc_size,
+		voxel_edge_length, 
+		[](const unsigned int x, const unsigned int y, const unsigned int z)
+		{
+			return tdscore::EXIST; 
+		}
+	);
+	for(unsigned int i = 0; i < movie.GetLength(); i++)
+	{
+		const auto image = movie.GetFrame(i);
+		const double radian = i*(range_max_radian/movie.GetLength());
+		printed_efvc = PrintImage(image, radian, printed_efvc, back_color);
+	}	
+	return printed_efvc;
 }
-*/
+
 
 template<class ValueType>
 auto ConvertVoxelToCubeGroup(
@@ -117,11 +215,19 @@ auto ConvertVoxelToCubeGroup(
 	const auto cube_face_list = tdm::CreateUnitCubeFaceList();
 	const auto material = material_generator(voxel.GetValue());
 	const auto unit_group = tdm::Group(material, cube_face_list);
+	
+	//const auto scaled_group = tdm::Scale(voxel_edge_length, unit_group)
+	//const auto group = tdm::Move(voxel_edge_length, scaled_group);
+	/*
 	const auto group = tdm::Move(
 		voxel_edge_length * (voxel.GetCoord()-0.5*common::CreateVector3d(1,1,1)), 
 		tdm::Scale(voxel_edge_length, unit_group)
 	);
-	
+	*/
+	const auto group = tdm::Move(
+		voxel.GetCoord()-0.5*voxel_edge_length*common::CreateVector3d(1,1,1), 
+		tdm::Scale(voxel_edge_length, unit_group)
+	);
 	return group;
 }
 
@@ -144,6 +250,78 @@ auto ConvertVoxelListToCubeSetObject(
 	return tdm::Object(group_list);
 
 }
+
+template<class ValueType>
+auto GetVoxelLayerSize(const tdscore::VoxelCuboid<ValueType>& voxel_cuboid)
+-> common::Size2ui
+{
+	const auto cuboid_size = voxel_cuboid.GetSize();
+	return common::Size2ui(cuboid_size.GetWidth(), cuboid_size.GetHeight());
+}
+
+template<class ValueType>
+auto GetVoxelLayer(
+	const tdscore::VoxelCuboid<ValueType>& voxel_cuboid,
+	const unsigned int layer_index
+)
+-> tdscore::VoxelLayer<ValueType>
+{
+	return tdscore::CreateVoxelLayer<ValueType>(
+		GetVoxelLayerSize(voxel_cuboid),
+		[&voxel_cuboid, &layer_index]
+		(
+			const unsigned int x, 
+			const unsigned int y
+		)
+		{
+			return voxel_cuboid(x, y, layer_index);
+		}
+	);
+}
+
+template<class ValueType>
+auto CountVoxelLayerElement(
+	const tdscore::VoxelCuboid<ValueType>& voxel_cuboid,
+	const unsigned int layer_index,
+	std::function<bool (const ValueType& value)> decider
+)
+-> unsigned int
+{
+	unsigned int count = 0;
+	for(const auto& le : GetVoxelLayer<ValueType>(voxel_cuboid, layer_index))
+	{
+		if(decider(le.GetValue()))
+		{
+			++count;
+		}
+	}
+
+	return count;
+}
+
+
+/*
+template<class ValueType>
+auto ConvertVoxelDualLayerToSmoothGroup(
+	const tdscore::VoxelCuboid<ValueType>& voxel_cuboid,
+	std::function<tdm::Material (const ValueType& value)> material_generator
+)
+-> tdm::GroupList
+{
+
+	return tdm::Object();
+}
+template<class ValueType>
+auto ConvertVoxelCuboidToSmoothObject(
+	const tdscore::VoxelCuboid<ValueType>& voxel_cuboid,
+	std::function<tdm::Material (const ValueType& value)> material_generator
+)
+-> tdm::Object
+{
+	return tdsm::Object();
+}
+
+*/
 /*
 */
 /*

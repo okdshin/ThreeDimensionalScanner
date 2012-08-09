@@ -25,12 +25,12 @@ class Movie
 public:
 	Movie(){}
 
-    unsigned int GetFrameSize()
+    unsigned int GetFrameSize()const
     {
         return this->image_list(0).GetSize();
     }
     
-	unsigned int GetLength()
+	unsigned int GetLength()const
     {
         return this->image_list.GetSize();
     }
@@ -39,6 +39,11 @@ public:
     {
         this->image_list.Add(image);
     }
+
+	Image<ColorElementType, ColorDimensionNum> GetFrame(unsigned int index)const
+	{
+		return this->image_list(index);	
+	}
 
 	auto begin()const 
 	-> typename common::List<Image<ColorElementType, ColorDimensionNum>>::const_iterator

@@ -25,7 +25,7 @@ auto LoadMovieFile(const std::string& file_name)
 		auto cv_frame = cv::Mat();	
 		capture >> cv_frame;
 		//std::cout << cv_frame << std::endl;
-		std::cout << "width:" << cv_frame.size().width << ", height:" << cv_frame.size().height << std::endl;
+		//std::cout << "width:" << cv_frame.size().width << ", height:" << cv_frame.size().height << std::endl;
 		const auto frame = mg::CreateColor4bImage(
 			common::Size2ui(cv_frame.size().width, cv_frame.size().height),
 			[&cv_frame](const unsigned int x, const unsigned int y)

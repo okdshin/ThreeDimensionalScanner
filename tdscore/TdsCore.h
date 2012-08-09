@@ -3,6 +3,7 @@
 #include <iostream>
 #include "Voxel.h"
 #include "VoxelList.h"
+#include "VoxelLayer.h"
 #include "VoxelCuboid.h"
 #include "ExistenceFlag.h"
 #include "ExistenceFlagVoxel.h"
