@@ -24,7 +24,11 @@ auto CreateExistenceFlagVoxelCuboid(
 	return CreateVoxelCuboid<ExistenceFlag>(size, voxel_edge_length, element_initializer);
 }
 
-auto CreateExistenceFlagVoxelCuboid(const common::Size3ui& cuboid_size, double voxel_edge_length, const tdscore::ExistenceFlag& initial_value=tdscore::EXIST)
+auto CreateExistenceFlagVoxelCuboid(
+	const common::Size3ui& cuboid_size, 
+	double voxel_edge_length, 
+	const tdscore::ExistenceFlag& initial_value=tdscore::EXIST
+)
 ->tdscore::ExistenceFlagVoxelCuboid
 {
 	auto indicator = utl::CharIndicatorWithTimer("efvc creation", common::GetVolume(cuboid_size));

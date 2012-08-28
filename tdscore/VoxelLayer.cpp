@@ -8,10 +8,11 @@ int main(int argc, char* argv[])
 {
 	const auto layer = 
 		CreateVoxelLayer<int>(
-			common::Size2ui(10,10), 
+			common::Size2ui(10,10),
+			1.5,
 			[](const unsigned int x, const unsigned int y)
 			{
-				return CreateVoxel<int>(x, y, 0, x+y);
+				return x+y;
 			}
 		);
 

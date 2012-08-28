@@ -38,25 +38,7 @@ auto CreateCircleImage(const common::Size2ui& image_size, const double radius, c
 	);
 }
 
-/*
-auto CreateExistenceFlagVoxelCuboid(const common::Size3ui& cuboid_size, double voxel_edge_length, const tdscore::ExistenceFlag& initial_value=tdscore::EXIST)
-->tdscore::ExistenceFlagVoxelCuboid
-{
-	auto indicator = utl::CharIndicatorWithTimer("efvc creation", common::GetVolume(cuboid_size));
-	return tdscore::CreateExistenceFlagVoxelCuboid(
-		cuboid_size, 
-		voxel_edge_length, 
-		[&initial_value, &indicator]
-		(const unsigned int x, const unsigned int y, const unsigned int z)
-		->tdscore::ExistenceFlag
-		{
-			indicator.CountAndIndicate();
-			return initial_value;
-		}
-	);
-	
-}
-*/
+
 void TestPrintImage()
 {
 	const auto back_color = mg::CreateColor4b(0,0,0,0);
@@ -118,7 +100,7 @@ void TestPrintMaskMovie()
 
 	pi_timer("print image:", ofs);
 
-	const auto efvl = tdscore::DigToList(printed_efvc, tdscore::HEX_DIRECTION_LIST);
+	const auto efvl = tdscore::DigToList(printed_efvc, tdscore::TET_DIRECTION_LIST);
 	
 	OutputVoxelListAsObjFile<tdscore::ExistenceFlag>(
 		"test_object", 
@@ -163,8 +145,8 @@ auto CreateSphereEfvc(const unsigned int cuboid_edge_size_length, const double v
 	const auto efvc = tdscore::CreateExistenceFlagVoxelCuboid(cuboid_size, voxel_edge_length);
 	
 	auto printed_efvc = tdscore::CreateExistenceFlagVoxelCuboid(cuboid_size, voxel_edge_length);
-	std::ofstream ofs("pi_timer");
-	auto pi_timer = utl::Timer();
+	//std::ofstream ofs("pi_timer");
+	//auto pi_timer = utl::Timer();
 	
 	for(unsigned int i = 0; i < 180; i+=20)
 	{
@@ -176,11 +158,15 @@ auto CreateSphereEfvc(const unsigned int cuboid_edge_size_length, const double v
 	return printed_efvc;
 }
 
-auto CreateSphereDiggedEfvc(const unsigned int cuboid_edge_size_length, const double voxel_edge_length)
+auto CreateSphereDiggedEfvc(
+	const unsigned int cuboid_edge_size_length, 
+	const double voxel_edge_length, 
+	const common::List<common::Vector3i>& direction_list = tdscore::HEX_DIRECTION_LIST
+)
 -> tdscore::ExistenceFlagVoxelCuboid
 {
 	const auto sphere = CreateSphereEfvc(cuboid_edge_size_length, voxel_edge_length);
-	return tdscore::Dig(sphere, voxel_edge_length);
+	return tdscore::Dig(sphere, voxel_edge_length, direction_list);
 }
 
 void TestGetDegreeOfSimilarity()
@@ -253,38 +239,32 @@ void TestGetVoxelLayerSize()
 	std::cout << layer_size << std::endl;
 }
 
-/*
+
 void TestGetVoxelLayer()
 {
 	const auto cuboid_size = common::Size3ui(5,5,5);
 	const auto voxel_edge_length = 1.0;
-	const auto efvc = CreateExistenceFlagVoxelCuboid(cuboid_size, voxel_edge_length);
+	const auto efvc = tdscore::CreateExistenceFlagVoxelCuboid(cuboid_size, voxel_edge_length);
 	for(unsigned int i = 0; i < 5; i++)
 	{
-		const auto layer = GetVoxelLayer<tdscore::ExistenceFlag>(efvc, i);
+		const auto layer = GetVoxelLayer<tdscore::ExistenceFlag>(efvc, voxel_edge_length, i);
 		std::cout << layer << std::endl;
 	}
 	
 }
-*/
-
-
+/*
 void TestCountVoxelLayerElement()
 {
 	auto sphere_efvc = CreateSphereDiggedEfvc(50, 1.0);
 	
 	const auto count = CountVoxelLayerElement<tdscore::ExistenceFlag>(
-		sphere_efvc, 
-		20, 
-		[](const tdscore::ExistenceFlag& value)
-		{
-			return value == tdscore::EXIST;
-		}
+		GetVoxelLayer(sphere_efvc, 20),
+		tdscore::IsExistenceFlagExist
 	);	
 	std::cout << count << std::endl;
 }
-
-void TestMain()
+*/
+void TestCreateVoxelSetObjFile()
 {
 	const auto cuboid_size = common::Size3ui(40,40,40);
 	const auto voxel_edge_length = 2.5;
@@ -296,7 +276,7 @@ void TestMain()
 	const auto back_color = mg::CreateColor4b(0,0,0,0);
 	const auto printed_efvc = PrintMaskMovie(movie, efvc.GetSize(), voxel_edge_length, back_color, M_PI);
 
-	const auto efvl = tdscore::DigToList(printed_efvc, tdscore::HEX_DIRECTION_LIST);
+	const auto efvl = tdscore::DigToList(printed_efvc, tdscore::TET_DIRECTION_LIST);
 	std::cout << efvl << std::endl;
 	OutputVoxelListAsObjFile<tdscore::ExistenceFlag>(
 		"test_object", 
@@ -309,15 +289,103 @@ void TestMain()
 	);
 	
 }
+
+void TestCreateVoxelSetObjFile(
+	const std::string& movie_file_name, 
+	const unsigned int start_frame, 
+	const unsigned int end_frame
+)
+{
+	const auto cuboid_size = common::Size3ui(40,40,40);
+	const auto voxel_edge_length = 2.5;
+	const auto efvc = tdscore::CreateExistenceFlagVoxelCuboid(cuboid_size, voxel_edge_length);
+
+	const auto src_movie = ocvmg::LoadColor4bMovieFile(movie_file_name.c_str());
+	const auto movie = CreateMaskMovie(src_movie, 18, 42, 9);
+	
+	const auto back_color = mg::CreateColor4b(0,0,0,0);
+	const auto printed_efvc = PrintMaskMovie(movie, efvc.GetSize(), voxel_edge_length, back_color, M_PI);
+
+	const auto efvl = tdscore::DigToList(printed_efvc, tdscore::HEX_DIRECTION_LIST);
+	std::cout << efvl << std::endl;
+	OutputVoxelListAsObjFile<tdscore::ExistenceFlag>(
+		movie_file_name.c_str(), 
+		voxel_edge_length,
+		efvl,
+		[](const tdscore::ExistenceFlag& ef)
+		{
+			return tdm::DonutsMaterial();
+		}
+	);
+	
+}
+
+/*
+void TestCreateSmoothObjFile()
+{
+	const double voxel_edge_length = 1.0;
+	auto sphere_efvc = CreateSphereDiggedEfvc(50, voxel_edge_length);
+	
+	const auto layer1 = GetVoxelLayer(sphere_efvc, voxel_edge_length, 25);
+	const auto layer2 = GetVoxelLayer(sphere_efvc, voxel_edge_length, 25);
+
+	const auto trace_list1 = tdscore::TraceVoxelLoopOnLayer<tdscore::ExistenceFlag>(
+		layer1, 
+		[](const tdscore::ExistenceFlag& val)
+		{
+			return val == 1;
+		}
+	);
+	
+	const auto trace_list2 = tdscore::TraceVoxelLoopOnLayer<tdscore::ExistenceFlag>(
+		layer2, 
+		[](const tdscore::ExistenceFlag& val)
+		{
+			return val == 1;
+		}
+	);
+
+	const auto group_list = ConvertTwoVoxelLayerToSmoothGroup<tdscore::ExistenceFlag>(
+		trace_list1,
+		trace_list2,
+		[](const tdscore::ExistenceFlag& ef)
+		{
+			return tdm::BlueMaterial();
+		}
+	);
+	const auto object = tdm::Object(group_list);
+	OutputObjectAsObjFile("smooth_test_object", object);
+	
+}
+*/
 int main(int argc, char* argv[])
 {
 	//TestPrintImage();
 	//TestPrintMaskMovie();
     //TestGetDegreeOfSimilarity();
 	//TestCreateMaskMovie();
-	//TestMain();
-	TestCountVoxelLayerElement();
+	std::string movie_file_name = "mini_converted_sample.avi";
+	std::cout << "prease put target movie file name: " << std::flush;
+	std::cin >> movie_file_name;
+
+	unsigned int start_frame = 18;
+	std::cout << "prease put start frame number: " << std::flush;
+	std::cin >> start_frame;
+	
+	unsigned int end_frame = 42;
+	std::cout << "prease put end frame number: " << std::flush;
+	std::cin >> end_frame;
+
+	TestCreateVoxelSetObjFile
+	(
+		movie_file_name,
+		start_frame,
+		end_frame
+	);
 	//TestGetVoxelLayer();
+	//TestCountVoxelLayerElement();
+	//TestCreateSmoothObjFile();
+	
 	return 0;
 }
 

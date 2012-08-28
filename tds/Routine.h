@@ -262,33 +262,35 @@ auto GetVoxelLayerSize(const tdscore::VoxelCuboid<ValueType>& voxel_cuboid)
 template<class ValueType>
 auto GetVoxelLayer(
 	const tdscore::VoxelCuboid<ValueType>& voxel_cuboid,
+	const double voxel_edge_length,
 	const unsigned int layer_index
 )
 -> tdscore::VoxelLayer<ValueType>
 {
 	return tdscore::CreateVoxelLayer<ValueType>(
 		GetVoxelLayerSize(voxel_cuboid),
+		voxel_edge_length,
 		[&voxel_cuboid, &layer_index]
 		(
 			const unsigned int x, 
 			const unsigned int y
 		)
 		{
-			return voxel_cuboid(x, y, layer_index);
+			return voxel_cuboid(x, y, layer_index).GetValue();
 		}
 	);
 }
 
+/*
 template<class ValueType>
 auto CountVoxelLayerElement(
-	const tdscore::VoxelCuboid<ValueType>& voxel_cuboid,
-	const unsigned int layer_index,
+	const tdscore::VoxelLayer<ValueType>& voxel_layer,
 	std::function<bool (const ValueType& value)> decider
 )
 -> unsigned int
 {
 	unsigned int count = 0;
-	for(const auto& le : GetVoxelLayer<ValueType>(voxel_cuboid, layer_index))
+	for(const auto& le : voxel_layer)
 	{
 		if(decider(le.GetValue()))
 		{
@@ -298,19 +300,93 @@ auto CountVoxelLayerElement(
 
 	return count;
 }
-
-
-/*
+*/
+//穴の空いていない物体を想定している。穴の空いた物体ではうまくいかないはずだ。
 template<class ValueType>
-auto ConvertVoxelDualLayerToSmoothGroup(
-	const tdscore::VoxelCuboid<ValueType>& voxel_cuboid,
+auto ConvertTwoVoxelLayerToSmoothGroup(
+	const tdscore::VoxelList<ValueType>& trace_list1,
+	const tdscore::VoxelList<ValueType>& trace_list2,
 	std::function<tdm::Material (const ValueType& value)> material_generator
 )
 -> tdm::GroupList
 {
+	/*
+	const auto trace_list1 = TraceVoxelLoopOnLayer<ValueType>(
+		voxel_layer1, 
+		common::CreateVector2i(20,50), 
+		common::CreateVector2i(1,0), 
+		[](const int& val)
+		{
+			return val == 1;
+		}
+	);
+	
+	const auto trace_list2 = TraceVoxelLoopOnLayer<ValueType>(
+		voxel_layer2, 
+		common::CreateVector2i(20,50), 
+		common::CreateVector2i(1,0), 
+		[](const ValueType& val)
+		{
+			return val == 1;
+		}
+	);
+	*/
+	const auto count1 = trace_list1.GetSize();
+	const auto count2 = trace_list2.GetSize();
+	
+	auto bigger_list = tdscore::VoxelList<ValueType>();
+	auto smaller_list = tdscore::VoxelList<ValueType>();
+	double count_ratio = 0.0;
+	if(count1 > count2)
+	{
+		bigger_list = trace_list1;
+		smaller_list = trace_list2;
+		count_ratio = static_cast<double>(count1) / static_cast<double>(count2);
+	}
+	else
+	{
+		bigger_list = trace_list2;
+		smaller_list = trace_list1;
+		count_ratio = static_cast<double>(count2) / static_cast<double>(count1);
+	}
 
-	return tdm::Object();
+	auto group_list = tdm::GroupList();
+
+	auto face_list = tdm::FaceList();
+	auto before_bigger_voxel = common::GetBackElement(bigger_list);
+	for(const auto& bigger_voxel : bigger_list)
+	{
+		const auto smaller_voxel = *std::min_element(
+			smaller_list.GetElementVector().begin(), 
+			smaller_list.GetElementVector().end(),
+			[&bigger_voxel](
+				const tdscore::Voxel<ValueType>& left, 
+				const tdscore::Voxel<ValueType>& right
+			){
+				return common::GetDistance(left.GetCoord(), bigger_voxel.GetCoord()) 
+						< common::GetDistance(right.GetCoord(), bigger_voxel.GetCoord());
+			}
+		);
+
+		const auto face = tdm::CreateTriFace(
+			before_bigger_voxel.GetCoord(), 
+			smaller_voxel.GetCoord(), 
+			bigger_voxel.GetCoord()
+		);
+
+		before_bigger_voxel = bigger_voxel;
+		face_list.Add(face);
+		const auto group = tdm::Group(
+			material_generator(bigger_voxel.GetValue()), 
+			face_list
+		);
+		group_list.Add(group);
+	}	
+
+	return group_list;
 }
+
+
 template<class ValueType>
 auto ConvertVoxelCuboidToSmoothObject(
 	const tdscore::VoxelCuboid<ValueType>& voxel_cuboid,
@@ -318,12 +394,27 @@ auto ConvertVoxelCuboidToSmoothObject(
 )
 -> tdm::Object
 {
-	return tdsm::Object();
+	return tdm::Object();
 }
 
-*/
-/*
-*/
+template<class ValueType>
+auto ConvertVoxelLayerToColor4bImage(
+	const tdscore::VoxelLayer<ValueType>& layer, 
+	std::function<mg::Color4b(const ValueType&)> converter
+)
+->mg::Color4bImage
+{
+	const auto image = mg::CreateColor4bImage(
+		layer.GetSize(),
+		[&layer, &converter](const unsigned int x, const unsigned int y)
+		{
+			return converter( layer(x,y).GetValue() );
+		}
+	);
+	return image;
+	
+}
+
 /*
 auto ConvertExistenceFlagVoxelToCubeGroup(
 	const tdscore::ExistenceFlagVoxel efv,

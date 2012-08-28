@@ -9,6 +9,11 @@ using ExistenceFlag = char;
 const ExistenceFlag EXIST = 'e';
 const ExistenceFlag NOT_EXIST  = 'n';
 
+bool IsExistenceFlagExist(const ExistenceFlag& flag)
+{
+	return flag == EXIST;	
+}
+
 }
 
 #endif
